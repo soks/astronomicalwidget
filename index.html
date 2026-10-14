@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="Minimal astronomy night cloud-cover forecast widget powered by Open-Meteo.">
+  <title>Tonight's Sky</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-synthesis: none;
+      -webkit-font-smoothing: antialiased;
+      --text: #edf3fa;
+      --subtle: #a9b6ca;
+      --muted: #7f90a8;
+      --glass: rgba(9, 15, 27, .78);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; min-height: 100%; background: transparent; }
+    body { width: 100%; display: flex; justify-content: center; align-items: flex-start; }
+    .panel {
+      width: min(100%, 202px);
+      padding: 12px 11px 8px;
+      background: var(--glass);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(221, 234, 255, .14);
+      border-radius: 14px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, .14);
+      color: var(--text);
+      overflow: hidden;
+    }
+    .heading { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+    h1 { margin: 0; font-size: 12px; letter-spacing: .03em; font-weight: 650; line-height: 1.3; }
+    .moon-icon { width: 15px; height: 15px; fill: none; stroke: #b4cfff; stroke-width: 1.5; flex: none; }
+    .subhead { margin-top: 5px; margin-bottom: 10px; color: var(--muted); font-size: 10px; letter-spacing: .015em; display: flex; gap: 5px; }
+    .subhead .dot { opacity: .5; }
+    .divider { height: 1px; background: rgba(233,243,255,.10); margin: 0 0 7px; }
+    .forecast { display: grid; gap: 2px; }
+    .entry {
+      display: grid;
+      grid-template-columns: 28px minmax(0, 1fr) 34px;
+      align-items: center;
+      gap: 7px;
+      height: 29px;
+      padding: 0 4px;
+      border-radius: 5px;
+      position: relative;
+      cursor: default;
+      transition: background-color .15s;
+    }
+    .entry.phase-night { background: rgba(87, 118, 172, .17); }
+    .entry.phase-twilight { background: rgba(143, 125, 160, .11); }
+    .entry.phase-day { background: rgba(234, 188, 113, .05); }
+    .entry.phase-night::before, .entry.phase-twilight::before {
+      content: ""; position: absolute; left: 0; top: 5px; bottom: 5px;
+      width: 2px; border-radius: 2px; background: #8ba8ec; opacity: .8;
+    }
+    .entry.phase-twilight::before { background: #a79ab6; opacity: .6; }
+    .entry:hover { background: rgba(178, 205, 255, .16); }
+    .hour { font-size: 11px; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--subtle); }
+    .entry.phase-night .hour { color: #e4edff; }
+    .track { height: 6px; background: rgba(236, 243, 255, .10); border-radius: 99px; overflow: hidden; }
+    .fill { display: block; height: 100%; min-width: 0; background: var(--bar-color, #7ac6a7); border-radius: inherit; }
+    .percent { font-size: 11px; font-variant-numeric: tabular-nums; font-weight: 560; text-align: right; color: #d8e4f2; }
+    .percent small { font-size: 9px; font-weight: 400; color: var(--muted); margin-left: 1px; }
+    .footer { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; gap: 5px; }
+    .legend { display: flex; align-items: center; gap: 4px; font-size: 9px; color: var(--muted); }
+    .legend-mark { height: 7px; width: 3px; border-radius: 3px; background: #8ba8ec; }
+    .attribution { font-size: 9px; color: var(--muted); text-decoration: none; }
+    .attribution:hover { color: #dde9fc; text-decoration: underline; }
+    .status { padding: 20px 5px; color: var(--subtle); font-size: 11px; line-height: 1.5; }
+    .status a, .status button { color: #b8d2fa; }
+    .status button { border: 0; background: transparent; padding: 0; font: inherit; text-decoration: underline; cursor: pointer; }
+    .skeleton { height: 8px; width: 100%; margin: 8px 0; background: rgba(255,255,255,.07); border-radius: 6px; }
+    .skeleton:nth-child(2) { width: 72%; }
+    .skeleton:nth-child(3) { width: 88%; }
+    @media (prefers-reduced-motion: reduce) { .entry { transition: none; } }
+  </style>
+</head>
+<body>
+  <main class="panel" aria-label="Astronomy cloud forecast">
+    <div class="heading">
+      <h1>Tonight</h1>
+      <svg class="moon-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 15.8A8.7 8.7 0 0 1 8.2 4a8.7 8.7 0 1 0 11.8 11.8Z"/></svg>
+    </div>
+    <div class="subhead" id="subhead"><span>Jelcz-Laskowice</span><span class="dot">·</span><span>Cloud cover</span></div>
+    <div class="divider"></div>
+    <div id="forecast" class="forecast" aria-live="polite">
+      <div class="status"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
+    </div>
+    <div class="footer">
+      <span class="legend"><span class="legend-mark"></span>Astronomical night</span>
+      <a class="attribution" href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer" title="Weather data: Open-Meteo">Open-Meteo</a>
+    </div>
+  </main>
+  <script>
+    'use strict';
+    // Settings can also be overridden via URL: ?lat=51.04&lon=17.35&step=1&opacity=.8
+    const params = new URLSearchParams(location.search);
+    const latParam = Number(params.get('lat'));
+    const lonParam = Number(params.get('lon'));
+    const lat = params.has('lat') && Number.isFinite(latParam) && Math.abs(latParam) <= 90 ? latParam : 51.04;
+    const lon = params.has('lon') && Number.isFinite(lonParam) && Math.abs(lonParam) <= 180 ? lonParam : 17.35;
+    const timezone = 'Europe/Warsaw';
+    const step = params.get('step') === '1' ? 1 : 2;
+    const opacityParam = Number(params.get('opacity'));
+    if (params.has('opacity') && Number.isFinite(opacityParam)) {
+      const alpha = Math.max(0, Math.min(1, opacityParam));
+      document.documentElement.style.setProperty('--glass', `rgba(9, 15, 27, ${alpha})`);
+    }
+    const forecastElement = document.getElementById('forecast');
+    const dateFormatter = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', timeZone: timezone });
+    const localPartsFormatter = new Intl.DateTimeFormat('en-GB', {
+      timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+    });
+
+    function localParts(epochMs) {
+      const parts = Object.fromEntries(localPartsFormatter.formatToParts(new Date(epochMs))
+        .filter(p => p.type !== 'literal').map(p => [p.type, p.value]));
+      return {
+        date: `${parts.year}-${parts.month}-${parts.day}`,
+        hour: Number(parts.hour), minute: Number(parts.minute)
+      };
+    }
+    function addDate(dateKey, days) {
+      const [year, month, day] = dateKey.split('-').map(Number);
+      const date = new Date(Date.UTC(year, month - 1, day + days));
+      return date.toISOString().slice(0, 10);
+    }
+    function solarAltitude(epochMs) {
+      // Approximate solar coordinates based on standard astronomical formulae.
+      // Uses UTC instants: dates across Polish DST boundaries remain correct.
+      const rad = Math.PI / 180;
+      const day = epochMs / 86400000 + 2440587.5 - 2451545;
+      const M = rad * (357.5291 + 0.98560028 * day);
+      const C = rad * (1.9148 * Math.sin(M) + 0.0200 * Math.sin(2*M) + 0.0003 * Math.sin(3*M));
+      const L = M + C + rad * 102.9372 + Math.PI;
+      const e = rad * 23.4397;
+      const dec = Math.asin(Math.sin(L) * Math.sin(e));
+      const ra = Math.atan2(Math.sin(L) * Math.cos(e), Math.cos(L));
+      const siderealTime = rad * (280.16 + 360.9856235 * day) + lon * rad;
+      const ha = siderealTime - ra;
+      const phi = lat * rad;
+      return Math.asin(Math.sin(phi) * Math.sin(dec) + Math.cos(phi) * Math.cos(dec) * Math.cos(ha)) / rad;
+    }
+    function solarEvent(dayKey, kind) {
+      const [y, m, d] = dayKey.split('-').map(Number);
+      const start = Date.UTC(y, m-1, d) - 12*3600000;
+      const end = start + 48*3600000;
+      const interval = 10*60000;
+      const horizon = -0.833; // Approximate apparent horizon including refraction / Sun radius.
+      let before = solarAltitude(start) - horizon;
+      for (let t = start + interval; t <= end; t += interval) {
+        const after = solarAltitude(t) - horizon;
+        const crossing = kind === 'set' ? before > 0 && after <= 0 : before < 0 && after >= 0;
+        if (crossing) {
+          const fraction = before / (before - after);
+          const instant = t - interval + interval * fraction;
+          const parts = localParts(instant);
+          if (parts.date === dayKey && (kind === 'set' ? parts.hour >= 12 : parts.hour <= 12)) return instant;
+        }
+        before = after;
+      }
+      return null;
+    }
+    function phaseName(alt) {
+      return alt < -18 ? 'Astronomical night' : alt < 0 ? 'Twilight' : 'Daylight';
+    }
+    function cloudColor(p) {
+      return p >= 75 ? '#e18386' : p >= 40 ? '#e7b974' : '#76c9b1';
+    }
+    function renderForecast(data) {
+      if (!data || data.error || !data.hourly || !Array.isArray(data.hourly.time)) throw new Error('Invalid API response');
+      const { time, cloud_cover, cloud_cover_low, cloud_cover_mid, cloud_cover_high } = data.hourly;
+      if (![cloud_cover, cloud_cover_low, cloud_cover_mid, cloud_cover_high].every(x => Array.isArray(x) && x.length === time.length)) {
+        throw new Error('Cloud cover data missing');
+      }
+      const now = localParts(Date.now());
+      const nightDate = now.hour < 9 ? addDate(now.date, -1) : now.date;
+      const nextDate = addDate(nightDate, 1);
+      const sunset = solarEvent(nightDate, 'set');
+      const sunrise = solarEvent(nextDate, 'rise');
+      if (sunset === null || sunrise === null || sunrise <= sunset) throw new Error('Unable to calculate sunrise/sunset');
+
+      const entries = time.map((unix, i) => ({
+        ms: Number(unix) * 1000,
+        total: cloud_cover[i], low: cloud_cover_low[i], mid: cloud_cover_mid[i], high: cloud_cover_high[i]
+      })).filter(item => Number.isFinite(item.ms) && item.ms >= sunset - 60*60000 && item.ms <= sunrise + 60*60000)
+        .filter(item => localParts(item.ms).hour % step === 0 && Number.isFinite(item.total));
+      if (!entries.length) throw new Error('No hours available for this night');
+      document.getElementById('subhead').replaceChildren(
+        document.createTextNode(`${dateFormatter.format(new Date(sunset))} — ${dateFormatter.format(new Date(sunrise))}`),
+        Object.assign(document.createElement('span'), { className: 'dot', textContent: '·' }),
+        document.createTextNode('Cloud cover')
+      );
+      const fragment = document.createDocumentFragment();
+      for (const item of entries) {
+        const alt = solarAltitude(item.ms);
+        const phase = phaseName(alt);
+        const value = Math.min(100, Math.max(0, Math.round(item.total)));
+        const row = document.createElement('div');
+        row.className = `entry phase-${phase === 'Astronomical night' ? 'night' : phase === 'Twilight' ? 'twilight' : 'day'}`;
+        const hourLabel = new Intl.DateTimeFormat('en-GB', { timeZone: timezone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(item.ms));
+        const optional = [
+          Number.isFinite(item.low) ? `Low ${Math.round(item.low)}%` : null,
+          Number.isFinite(item.mid) ? `Mid ${Math.round(item.mid)}%` : null,
+          Number.isFinite(item.high) ? `High ${Math.round(item.high)}%` : null
+        ].filter(Boolean).join(' · ');
+        row.title = `${hourLabel} · ${phase} · Cloud cover ${value}%${optional ? '\n' + optional : ''}`;
+        row.setAttribute('aria-label', row.title.replace('\n', '. '));
+        const hour = document.createElement('span');
+        hour.className = 'hour';
+        hour.textContent = hourLabel.slice(0, 2);
+        const track = document.createElement('span');
+        track.className = 'track';
+        track.setAttribute('aria-hidden', 'true');
+        const fill = document.createElement('span');
+        fill.className = 'fill';
+        fill.style.width = `${value}%`;
+        fill.style.setProperty('--bar-color', cloudColor(value));
+        track.append(fill);
+        const pct = document.createElement('span');
+        pct.className = 'percent';
+        pct.textContent = String(value);
+        const percentSymbol = document.createElement('small');
+        percentSymbol.textContent = '%';
+        pct.append(percentSymbol);
+        row.append(hour, track, pct);
+        fragment.append(row);
+      }
+      forecastElement.replaceChildren(fragment);
+    }
+    function showError() {
+      forecastElement.replaceChildren();
+      const message = document.createElement('div');
+      message.className = 'status';
+      message.append(document.createTextNode('Forecast unavailable. '));
+      const retry = document.createElement('button');
+      retry.type = 'button';
+      retry.textContent = 'Retry';
+      retry.addEventListener('click', () => { retry.disabled = true; loadForecast(); });
+      message.append(retry);
+      forecastElement.append(message);
+    }
+    async function loadForecast() {
+      const url = new URL('https://api.open-meteo.com/v1/forecast');
+      url.searchParams.set('latitude', String(lat));
+      url.searchParams.set('longitude', String(lon));
+      url.searchParams.set('hourly', 'cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high');
+      url.searchParams.set('timezone', timezone);
+      url.searchParams.set('timeformat', 'unixtime');
+      url.searchParams.set('past_days', '1');
+      url.searchParams.set('forecast_days', '3');
+      const cacheKey = `sky-forecast-v1-${lat}-${lon}`;
+      try {
+        // Cache for 30 minutes across new tabs where browser storage is available.
+        try {
+          const cached = JSON.parse(localStorage.getItem(cacheKey));
+          if (cached && Date.now() - cached.savedAt < 30 * 60 * 1000) {
+            renderForecast(cached.data);
+            return;
+          }
+        } catch (_) { /* third-party storage may be blocked */ }
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 12000);
+        let response;
+        try { response = await fetch(url, { signal: controller.signal }); }
+        finally { clearTimeout(timer); }
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        renderForecast(data);
+        try { localStorage.setItem(cacheKey, JSON.stringify({ savedAt: Date.now(), data })); }
+        catch (_) { /* optional cache */ }
+      } catch (error) {
+        console.warn('Tonight Sky:', error);
+        showError();
+      }
+    }
+    loadForecast();
+    // Refresh when the tab stays open and time crosses into the next observing night.
+    setInterval(loadForecast, 30 * 60 * 1000);
+  </script>
+</body>
+</html>
