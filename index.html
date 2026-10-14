@@ -161,14 +161,14 @@
     }
     async function loadSeeing() {
       try {
-        const response = await fetch('seeing.json', { cache: 'no-store' });
+        const response = await fetch(`seeing.json?t=${Date.now()}`, { cache: 'no-store' });
         if (!response.ok) throw new Error(`Seeing HTTP ${response.status}`);
         const payload = await response.json();
         const init = String(payload.init || '');
         if (!/^\d{10}$/.test(init) || !Array.isArray(payload.dataseries)) throw new Error('Invalid 7Timer! data');
         const issuedAt = Date.UTC(+init.slice(0,4), +init.slice(4,6)-1, +init.slice(6,8), +init.slice(8,10));
-        if (!Number.isFinite(issuedAt) || issuedAt > Date.now() + 4*3600000 || Date.now() - issuedAt > 24*3600000) {
-          throw new Error('Seeing data is stale');
+        if (!Number.isFinite(issuedAt) || issuedAt > Date.now() + 4*3600000) {
+          throw new Error('Invalid forecast timestamp');
         }
         seeingForecast = payload.dataseries.map(point => ({
           ms: issuedAt + Number(point.timepoint)*3600000,
@@ -176,7 +176,6 @@
         })).filter(point => Number.isFinite(point.ms) && seeingBins[point.category]);
       } catch (error) {
         console.warn('Tonight Sky: seeing unavailable:', error.message);
-        seeingForecast = null;
       }
       refreshSeeingInRows();
     }
@@ -354,7 +353,7 @@
     loadSeeing();
     // Refresh when the tab stays open and time crosses into the next observing night.
     setInterval(loadForecast, 30 * 60 * 1000);
-    setInterval(loadSeeing, 30 * 60 * 1000);
+    setInterval(loadSeeing, 5 * 60 * 1000);
   </script>
 </body>
 </html>
