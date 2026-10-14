@@ -3,23 +3,18 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="color-scheme" content="dark">
   <meta name="description" content="Minimal astronomy night cloud-cover forecast widget powered by Open-Meteo.">
   <title>Tonight's Sky</title>
   <style>
     :root {
-      color-scheme: dark;
+      color-scheme: normal;
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       font-synthesis: none;
       -webkit-font-smoothing: antialiased;
       --text: #edf3fa;
       --subtle: #a9b6ca;
       --muted: #7f90a8;
-      --glass: rgba(18, 26, 42, .28);
-      --glass-strong: rgba(15, 22, 36, .38);
-      --glass-line: rgba(255, 255, 255, .16);
-      --glass-highlight: rgba(255, 255, 255, .10);
-      --glass-shadow: rgba(0, 0, 0, .20);
+      --glass: rgba(9, 15, 27, .70);
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; min-height: 100%; background: transparent; }
@@ -27,56 +22,12 @@
     .panel {
       width: min(100%, 202px);
       padding: 12px 11px 8px;
-      position: relative;
+      background: var(--glass);
+      border: 1px solid rgba(221, 234, 255, .14);
+      border-radius: 17px;
+      box-shadow: 0 7px 20px rgba(0, 0, 0, .18);
       color: var(--text);
       overflow: hidden;
-    
-      background:
-        linear-gradient(
-          180deg,
-          rgba(255,255,255,.12) 0%,
-          rgba(255,255,255,.06) 16%,
-          rgba(255,255,255,.03) 100%
-        ),
-        var(--glass);
-    
-      border: 1px solid var(--glass-line);
-      border-radius: 18px;
-    
-      backdrop-filter: blur(22px) saturate(180%);
-      -webkit-backdrop-filter: blur(22px) saturate(180%);
-    
-      box-shadow:
-        0 10px 28px var(--glass-shadow),
-        0 1px 0 rgba(255,255,255,.10) inset,
-        0 -1px 0 rgba(255,255,255,.04) inset;
-    }
-    .panel::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      border-radius: inherit;
-      background:
-        linear-gradient(
-          180deg,
-          rgba(255,255,255,.16) 0%,
-          rgba(255,255,255,.06) 20%,
-          rgba(255,255,255,0) 48%
-        );
-      opacity: .9;
-    }
-    
-    .panel::after {
-      content: "";
-      position: absolute;
-      left: 10px;
-      right: 10px;
-      top: 8px;
-      height: 1px;
-      border-radius: 999px;
-      background: rgba(255,255,255,.18);
-      pointer-events: none;
     }
     .heading { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
     h1 { margin: 0; font-size: 12px; letter-spacing: .03em; font-weight: 650; line-height: 1.3; }
@@ -87,9 +38,9 @@
     .forecast { display: grid; gap: 2px; }
     .entry {
       display: grid;
-      grid-template-columns: 28px minmax(0, 1fr) 34px;
+      grid-template-columns: 20px minmax(0, 1fr) 32px 41px;
       align-items: center;
-      gap: 7px;
+      gap: 5px;
       height: 29px;
       padding: 0 4px;
       border-radius: 5px;
@@ -97,46 +48,34 @@
       cursor: default;
       transition: background-color .15s;
     }
-    .entry.phase-night { background: rgba(120, 150, 220, .10); }
-    .entry.phase-twilight { background: rgba(170, 145, 190, .08); }
-    .entry.phase-day { background: rgba(255, 210, 140, .04); }
+    .entry.phase-night { background: rgba(95, 131, 178, .085); }
+    .entry.phase-twilight { background: rgba(143, 125, 160, .055); }
+    .entry.phase-day { background: rgba(234, 188, 113, .025); }
     .entry.phase-night::before, .entry.phase-twilight::before {
       content: ""; position: absolute; left: 0; top: 5px; bottom: 5px;
       width: 2px; border-radius: 2px; background: #8ba8ec; opacity: .8;
     }
     .entry.phase-twilight::before { background: #a79ab6; opacity: .6; }
-    .entry:hover { background: rgba(190, 215, 255, .12); }
+    .entry:hover { background: rgba(178, 205, 255, .095); }
     .hour { font-size: 11px; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--subtle); }
     .entry.phase-night .hour { color: #e4edff; }
-    .track {
-      height: 6px;
-      background: rgba(255,255,255,.09);
-      border-radius: 999px;
-      overflow: hidden;
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,.03);
-    }
-    .fill {
-      display: block;
-      height: 100%;
-      min-width: 0;
-      background: var(--bar-color, #7ac6a7);
-      border-radius: inherit;
-      box-shadow: 0 0 8px rgba(255,255,255,.06);
-    }
+    .track { height: 6px; background: rgba(236, 243, 255, .10); border-radius: 99px; overflow: hidden; }
+    .fill { display: block; height: 100%; min-width: 0; background: var(--bar-color, #7ac6a7); border-radius: inherit; }
     .percent { font-size: 11px; font-variant-numeric: tabular-nums; font-weight: 560; text-align: right; color: #d8e4f2; }
     .percent small { font-size: 9px; font-weight: 400; color: var(--muted); margin-left: 1px; }
-    .footer {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-top: 8px;
-      gap: 5px;
-      opacity: .82;
-    }
+    .seeing { color: var(--muted); font-size: 10px; text-align: right; white-space: nowrap;
+      font-variant-numeric: tabular-nums; letter-spacing: -.035em; }
+    .seeing.good { color: #79cab3; }
+    .seeing.medium { color: #edc484; }
+    .seeing.poor { color: #e79b9f; }
+    .column-head { display: flex; justify-content: flex-end; gap: 4px; align-items: center; color: var(--muted); font-size: 9px; padding: 0 3px 5px; }
+    .column-head > span:last-child { width: 41px; text-align: right; }
+    .footer { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; gap: 5px; }
     .legend { display: flex; align-items: center; gap: 4px; font-size: 9px; color: var(--muted); }
     .legend-mark { height: 7px; width: 3px; border-radius: 3px; background: #8ba8ec; }
     .attribution { font-size: 9px; color: var(--muted); text-decoration: none; }
     .attribution:hover { color: #dde9fc; text-decoration: underline; }
+    .sources { white-space: nowrap; color: var(--muted); font-size: 9px; }
     .status { padding: 20px 5px; color: var(--subtle); font-size: 11px; line-height: 1.5; }
     .status a, .status button { color: #b8d2fa; }
     .status button { border: 0; background: transparent; padding: 0; font: inherit; text-decoration: underline; cursor: pointer; }
@@ -144,11 +83,6 @@
     .skeleton:nth-child(2) { width: 72%; }
     .skeleton:nth-child(3) { width: 88%; }
     @media (prefers-reduced-motion: reduce) { .entry { transition: none; } }
-    .legend,
-    .attribution,
-    .subhead {
-      color: rgba(220, 232, 250, .66);
-    }
   </style>
 </head>
 <body>
@@ -159,17 +93,18 @@
     </div>
     <div class="subhead" id="subhead"><span>Jelcz-Laskowice</span><span class="dot">·</span><span>Cloud cover</span></div>
     <div class="divider"></div>
+    <div class="column-head"><span>Seeing</span><span aria-hidden="true">″</span></div>
     <div id="forecast" class="forecast" aria-live="polite">
       <div class="status"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
     </div>
     <div class="footer">
       <span class="legend"><span class="legend-mark"></span>Astronomical night</span>
-      <a class="attribution" href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer" title="Weather data: Open-Meteo">Open-Meteo</a>
+      <span class="sources"><a class="attribution" href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer" title="Cloud cover: Open-Meteo">Meteo</a><span class="source-dot"> · </span><a class="attribution" href="https://www.7timer.info/doc.php?lang=en" target="_blank" rel="noopener noreferrer" title="Seeing: 7Timer! model">7Timer!</a></span>
     </div>
   </main>
   <script>
     'use strict';
-    // Settings can also be overridden via URL: ?lat=51.04&lon=17.35&step=1&opacity=.8
+    // Settings can also be overridden via URL: ?lat=51.04&lon=17.35&step=1&opacity=.7
     const params = new URLSearchParams(location.search);
     const latParam = Number(params.get('lat'));
     const lonParam = Number(params.get('lon'));
@@ -183,6 +118,68 @@
       document.documentElement.style.setProperty('--glass', `rgba(9, 15, 27, ${alpha})`);
     }
     const forecastElement = document.getElementById('forecast');
+    let seeingForecast = null;
+    // 7Timer! 1-8 categories, officially mapped to seeing intervals in arcseconds.
+    // Labels prefixed with ~ are category midpoints, NOT precise seeing predictions.
+    const seeingBins = {
+      1: { short: '<0.5″', interval: 'under 0.5″' },
+      2: { short: '~0.6″', interval: '0.5–0.75″' },
+      3: { short: '~0.9″', interval: '0.75–1.0″' },
+      4: { short: '~1.1″', interval: '1.0–1.25″' },
+      5: { short: '~1.4″', interval: '1.25–1.5″' },
+      6: { short: '~1.8″', interval: '1.5–2.0″' },
+      7: { short: '~2.3″', interval: '2.0–2.5″' },
+      8: { short: '>2.5″', interval: 'over 2.5″' }
+    };
+    function seeingAt(epochMs) {
+      if (!seeingForecast || !seeingForecast.length) return null;
+      let closest = null;
+      let distance = Infinity;
+      for (const forecast of seeingForecast) {
+        const delta = Math.abs(forecast.ms - epochMs);
+        if (delta < distance) { distance = delta; closest = forecast; }
+      }
+      // 7Timer! publishes every 3 hours; never match farther than half of that interval.
+      return distance <= 91 * 60000 ? closest : null;
+    }
+    function attachSeeing(row, epochMs) {
+      const match = seeingAt(epochMs);
+      const bin = match && seeingBins[match.category];
+      const label = document.createElement('span');
+      label.className = `seeing ${!match ? '' : match.category <= 3 ? 'good' : match.category <= 5 ? 'medium' : 'poor'}`;
+      label.textContent = bin ? bin.short : '—';
+      label.title = bin ? `7Timer! seeing category ${match.category}/8: ${bin.interval} (forecast interval, not exact seeing)`
+        : 'Seeing forecast unavailable';
+      row.append(label);
+    }
+    function refreshSeeingInRows() {
+      for (const row of forecastElement.querySelectorAll('.entry')) {
+        const old = row.querySelector('.seeing');
+        if (old) old.remove();
+        attachSeeing(row, Number(row.dataset.epochMs));
+      }
+    }
+    async function loadSeeing() {
+      try {
+        const response = await fetch('seeing.json', { cache: 'no-store' });
+        if (!response.ok) throw new Error(`Seeing HTTP ${response.status}`);
+        const payload = await response.json();
+        const init = String(payload.init || '');
+        if (!/^\d{10}$/.test(init) || !Array.isArray(payload.dataseries)) throw new Error('Invalid 7Timer! data');
+        const issuedAt = Date.UTC(+init.slice(0,4), +init.slice(4,6)-1, +init.slice(6,8), +init.slice(8,10));
+        if (!Number.isFinite(issuedAt) || issuedAt > Date.now() + 4*3600000 || Date.now() - issuedAt > 24*3600000) {
+          throw new Error('Seeing data is stale');
+        }
+        seeingForecast = payload.dataseries.map(point => ({
+          ms: issuedAt + Number(point.timepoint)*3600000,
+          category: Number(point.seeing)
+        })).filter(point => Number.isFinite(point.ms) && seeingBins[point.category]);
+      } catch (error) {
+        console.warn('Tonight Sky: seeing unavailable:', error.message);
+        seeingForecast = null;
+      }
+      refreshSeeingInRows();
+    }
     const dateFormatter = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', timeZone: timezone });
     const localPartsFormatter = new Intl.DateTimeFormat('en-GB', {
       timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit',
@@ -275,6 +272,7 @@
         const value = Math.min(100, Math.max(0, Math.round(item.total)));
         const row = document.createElement('div');
         row.className = `entry phase-${phase === 'Astronomical night' ? 'night' : phase === 'Twilight' ? 'twilight' : 'day'}`;
+        row.dataset.epochMs = String(item.ms);
         const hourLabel = new Intl.DateTimeFormat('en-GB', { timeZone: timezone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(item.ms));
         const optional = [
           Number.isFinite(item.low) ? `Low ${Math.round(item.low)}%` : null,
@@ -304,6 +302,7 @@
         fragment.append(row);
       }
       forecastElement.replaceChildren(fragment);
+      refreshSeeingInRows();
     }
     function showError() {
       forecastElement.replaceChildren();
@@ -352,8 +351,10 @@
       }
     }
     loadForecast();
+    loadSeeing();
     // Refresh when the tab stays open and time crosses into the next observing night.
     setInterval(loadForecast, 30 * 60 * 1000);
+    setInterval(loadSeeing, 30 * 60 * 1000);
   </script>
 </body>
 </html>
